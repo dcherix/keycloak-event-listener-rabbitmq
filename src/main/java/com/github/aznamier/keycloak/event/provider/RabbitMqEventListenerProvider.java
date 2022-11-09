@@ -15,38 +15,18 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.AMQP.BasicProperties.Builder;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 
 public class RabbitMqEventListenerProvider implements EventListenerProvider {
 
 	private RabbitMqConfig cfg;
 	private ConnectionFactory factory;
 	
-    private KeycloakSession session;
-    
-	private EventListenerTransaction tx = new EventListenerTransaction(this::publishAdminEvent, this::publishEvent);
+	private Channel channel;
 
-	public RabbitMqEventListenerProvider(RabbitMqConfig cfg, KeycloakSession session) {
+	private final EventListenerTransaction tx = new EventListenerTransaction(this::publishAdminEvent, this::publishEvent);
+
+	public RabbitMqEventListenerProvider(Channel channel, KeycloakSession session, RabbitMqConfig cfg) {
 		this.cfg = cfg;
-		
-		this.factory = new ConnectionFactory();
-
-		this.factory.setUsername(cfg.getUsername());
-		this.factory.setPassword(cfg.getPassword());
-		this.factory.setVirtualHost(cfg.getVhost());
-		this.factory.setHost(cfg.getHostUrl());
-		this.factory.setPort(cfg.getPort());
-
-		if(cfg.getUseTls()) {
-			try {
-				this.factory.useSslProtocol();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		
-		this.session = session;
 		this.session.getTransactionManager().enlistAfterCompletion(tx);
 		
 	}
@@ -102,14 +82,8 @@ public class RabbitMqEventListenerProvider implements EventListenerProvider {
 		
 
 		try {
-			Connection conn = factory.newConnection();
-			Channel channel = conn.createChannel();
-			
 			channel.basicPublish(cfg.getExchange(), routingKey, props, messageString.getBytes());
 			System.out.println("keycloak-to-rabbitmq SUCCESS sending message: " + routingKey);
-			channel.close();
-			conn.close();
-
 		} catch (Exception ex) {
 			System.err.println("keycloak-to-rabbitmq ERROR sending message: " + routingKey);
 			ex.printStackTrace();
