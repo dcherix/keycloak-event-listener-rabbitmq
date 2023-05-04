@@ -5,6 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.rabbitmq.client.ConnectionFactory;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventListenerProvider;
 import org.keycloak.events.EventListenerTransaction;
@@ -19,16 +20,14 @@ import com.rabbitmq.client.Channel;
 public class RabbitMqEventListenerProvider implements EventListenerProvider {
 
 	private RabbitMqConfig cfg;
-	private ConnectionFactory factory;
-	
 	private Channel channel;
 
 	private final EventListenerTransaction tx = new EventListenerTransaction(this::publishAdminEvent, this::publishEvent);
 
 	public RabbitMqEventListenerProvider(Channel channel, KeycloakSession session, RabbitMqConfig cfg) {
+		this.channel=channel;
 		this.cfg = cfg;
-		this.session.getTransactionManager().enlistAfterCompletion(tx);
-		
+		session.getTransactionManager().enlistAfterCompletion(tx);
 	}
 
 	@Override
