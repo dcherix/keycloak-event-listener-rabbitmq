@@ -4,7 +4,9 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
+
 import org.jboss.logging.Logger;
 import org.keycloak.Config.Scope;
 import org.keycloak.events.EventListenerProvider;
@@ -29,7 +31,7 @@ public class RabbitMqEventListenerProviderFactory implements EventListenerProvid
     private synchronized void checkConnectionAndChannel() {
         try {
             if (connection == null || !connection.isOpen()) {
-                this.connection = connectionFactory.newConnection();
+                this.connection = connectionFactory.newConnection("keycloak/"+this.getClass().getSimpleName()+"-"+ UUID.randomUUID());
             }
             if (channel == null || !channel.isOpen()) {
                 channel = connection.createChannel();
